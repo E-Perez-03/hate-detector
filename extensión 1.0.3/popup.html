@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Hate Detector 1.0.3</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="main-window">
+    <header class="app-header">
+      <div class="header-content">
+        <img src="img/2.png" alt="Hate Detector Logo" class="app-icon" height="70" width="40">
+        <h2>Hate Detector <span class="version">1.0.3</span></h2>
+      </div>
+    </header>
+
+    <!--<nav class="tabs-nav">
+      <button class="tab-btn active" data-target="tab-analisis">Análisis</button>
+      <button class="tab-btn" data-target="tab-config">Configuración</button>
+      <button id="btnAboutOpen" class="tab-btn">Acerca de...</button>
+    </nav>-->
+
+    <nav class="tabs-nav">
+    <button class="tab-btn active" data-target="tab-analisis">Análisis</button>
+    <button class="tab-btn" data-target="tab-config">Configuración</button>
+    <button class="tab-btn" data-target="modalAbout">Acerca de</button>
+</nav>
+
+  <main class="tabs-content">
+  <div id="tab-analisis" class="tab-pane active">
+    <button id="btnExtract" class="primary-btn">Extraer & Analizar</button>
+    
+    <div class="code-container">
+      <div id="activeModelBadge" class="model-badge">[Texto extraído]</div>
+      <div id="result" class="code-view"><em>El texto aparecerá aquí...</em></div>
+      <div class="code-stats">
+        <span>Caracteres: <strong id="charCount">0</strong></span>
+        <span>Palabras: <strong id="wordCount">0</strong></span>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <span id="proxyState">[Resultados]</span>
+      <div id="loadingBall" class="spinner" style="display:none;"></div>
+    </div>
+    <div class="action-links">
+        <button id="btnLogs" class="link-btn">📊 Ver Registros</button>
+        <button id="btnSurvey" class="link-btn">📝 Encuesta de Uso</button>
+      </div>
+    <div id="blocks"></div>
+  </div> <div id="tab-config" class="tab-pane">
+    <div class="config-container">
+      <section class="config-section">
+        <h4><i class="icon"></i> Sensibilidad</h4>
+        <p class="config-help">Umbral de clasificación.</p>
+        <div class="input-field">
+          <label>Alerta (Amarillo)</label>
+          <div class="input-wrapper">
+            <input type="number" id="inputLow" step="1" value="30">
+            <span class="unit">%</span>
+          </div>
+        </div>
+        <div class="input-field">
+          <label>Crítico (Rojo)</label>
+          <div class="input-wrapper">
+            <input type="number" id="inputHigh" step="1" value="70">
+            <span class="unit">%</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="config-section">
+        <h4><i class="icon"></i> Modelo BERT-based para textos en Español</h4>
+        <p class="config-help">Selecciona el modelo</p>
+        <div class="select-wrapper">
+          <select id="modelSelect" class="modern-select">
+            <option value="antonn-dromundo/SinOdio-BETO-HateSpeech-Detector-v3">SinOdio-BETO-v3 (Dromundo)</option>
+            <option value="LaProfeClaudis/LGBeTO_detection_Model">LGBeTO Model (Martínez-Araneda et al.)</option>
+          </select>
+        </div>
+      </section>
+
+      <button id="btnSaveConfig" class="save-btn-premium">GUARDAR CAMBIOS</button>
+    </div>
+  </div> </main>
+
+    <div id="modalAbout" class="modal">
+      <div class="modal-content">
+        <span id="btnAboutClose" class="close">&times;</span>
+        <img src="img/hate_detector_1024x682.png" alt="Logo" class="about-logo" width="200">
+        <h3>Hate Detector 1.0.3</h3>
+        <p>Detector automático de lenguaje de odio basado en arquitectura BERT.</p>
+        
+        <div class="reference-box">
+          <strong>Proyecto INGFIN 03/2025</strong>
+          <p>Directora: C. Martínez-Araneda, Directora alterna: Mariella Gutiérrez V., Colaboradora: Alejandra Segura N., Estudiante colaborador: Elias Pérez M.</p>
+        </div>
+        
+        <div class="reference-box" style="margin-top: 10px; text-align: left;">
+          <strong>Modelos Utilizados:</strong>
+          <ul style="padding-left: 15px; margin-top: 8px; margin-bottom: 0; font-size: 0.85em; line-height: 1.4;">
+            <li style="margin-bottom: 10px;">
+              <strong>LGBeTO:</strong> Martínez-Araneda, C., Gutiérrez V., M., Gómez M., P., Maldonado M., D., Segura N., A., & Vidal-Castro, C. (2025). <i>LGBeTO_detection_Model</i> (Revision a8b5b38). Hugging Face.<br>
+              <a href="https://doi.org/10.57967/hf/5406" target="_blank" style="color: #2563eb; text-decoration: none;">🔗 doi.org/10.57967/hf/5406</a>
+            </li>
+            <li>
+              <strong>SinOdio BETO:</strong> Dromundo, A. (2025). <i>SinOdio BETO: Detector de Discurso de Odio para Español Latinoamericano</i>. HuggingFace.<br>
+              <a href="https://huggingface.co/antonn-dromundo/SinOdio-BETO-HateSpeech-Detector-v3" target="_blank" style="color: #2563eb; text-decoration: none;">🔗 Enlace a HuggingFace</a>
+            </li>
+          </ul>
+        </div>
+        <p class="academic-note">Facultad de Ingeniería - 2026</p>
+      </div>
+    </div>
+    </div>
+  </div> <script src="popup.js"></script>
+</body>
+</html>

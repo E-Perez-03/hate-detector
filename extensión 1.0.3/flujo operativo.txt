@@ -1,0 +1,28 @@
+
+Flujo Operativo de la Extensión
+Para que comprendas cómo interactúan ahora los componentes que hemos modificado, este es el orden de ejecución:
+
+Carga de Configuración: El popup.js lee de chrome.storage.local tus umbrales personalizados y el modelo seleccionado (ej. BETO-Spanish).
+
+Verificación del Content Script: Se intenta contactar a la pestaña. Si no responde, el popup inyecta content.js al vuelo usando la API de scripting.
+
+Extracción y Limpieza: content.js filtra etiquetas irrelevantes (scripts, estilos) y devuelve el texto puro.
+
+Normalización: Se procesan los emojis mediante el mapa de conceptos (utilizando el archivo emoticons.csv).
+
+Inferencia: Se envía el texto al background.js, que realiza la petición al endpoint de Hugging Face correspondiente al modelo de Antonio Dromundo o el de Lyrics_Gender_Violence.
+
+Renderizado Dinámico: Los bloques se pintan en la interfaz con colores (verde, amarillo, rojo) basados estrictamente en los umbrales que definiste en la pestaña de configuración.
+
+Verificación Final de Archivos
+Asegúrate de tener estos 5 archivos en tu carpeta de desarrollo:
+
+manifest.json: Con permisos de storage, scripting y activeTab.
+
+popup.html: Con la estructura de 3 pestañas (Análisis, Configuración, Acerca de).
+
+popup.css: Con los estilos para las pestañas y la cuadrícula de resultados.
+
+popup.js: Con la función extractTextFromPage que inyecta el script automáticamente.
+
+content.js: Con la lógica de limpieza de HTML y envío de texto.
