@@ -1,6 +1,11 @@
 // popup.js
 let thresholds = { low: 0.03, high: 0.07 };
 
+// Estado global de bloques y ordenamiento
+let currentBlocks  = [];
+let currentPageUrl = "";
+let currentOrder   = "desc"; // "desc" | "asc" | "original"
+
 document.addEventListener("DOMContentLoaded", () => {
     console.log("Popup cargado y listo.");
     
@@ -41,6 +46,9 @@ document.addEventListener("DOMContentLoaded", () => {
             chrome.tabs.create({ url: "https://forms.gle/fFihAmYejmQ1hztK8" });
         };
     }
+
+    // 6. BOTONES DE ORDENAMIENTO
+    initSortButtons();
 });
 
 function initTabs() {
@@ -53,17 +61,14 @@ function initTabs() {
     btn.addEventListener("click", () => {
       const target = btn.getAttribute("data-target");
 
-      // A. Quitamos la clase active de todos los botones
       btns.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
 
-      // B. Ocultamos TODOS los paneles manualmente para mayor seguridad
       panes.forEach(pane => {
         pane.classList.remove("active");
         pane.style.display = "none"; 
       });
 
-      // C. Mostramos SOLAMENTE el panel elegido
       const activePane = document.getElementById(target);
       if (activePane) {
         activePane.classList.add("active");
@@ -74,13 +79,11 @@ function initTabs() {
 }
 
 function switchTab(targetId) {
-  // Ocultar todos los paneles
   document.querySelectorAll('.tab-pane').forEach(pane => {
     pane.classList.remove('active');
     pane.style.display = 'none'; 
   });
 
-  // Mostrar solo el seleccionado
   const activePane = document.getElementById(targetId);
   if (activePane) {
     activePane.classList.add('active');
@@ -101,14 +104,12 @@ function initModal() {
 
         const closeModal = () => {
             modal.style.display = "none";
-            // ESTO DEVUELVE EL FOCO A LA PRIMERA VENTANA
             const tabAnalisisBtn = document.querySelector('.tab-btn[data-target="tab-analisis"]');
             if (tabAnalisisBtn) tabAnalisisBtn.click();
         };
 
         if (btnClose) btnClose.onclick = closeModal;
         
-        // Cerrar si hacen clic en el fondo oscuro
         window.onclick = (event) => {
             if (event.target == modal) closeModal();
         };
@@ -122,30 +123,25 @@ async function analyze() {
 
     try {
         if (state) state.textContent = "Analizando...";
-        
         if (loadingBall) loadingBall.style.display = "inline-block";
         
         const pageData = await extractTextFromPage();
         const pageText = pageData.text;
         const pageUrl = pageData.url;
         
-        // Insertar el texto limpio mientras analiza
         if (resultDiv) resultDiv.textContent = pageText;
         updateTextStats(pageText);
 
         chrome.runtime.sendMessage({
             type: "CLASSIFY_TEXT",
             text: pageText,
-            url: pageUrl // Enviamos URL real
+            url: pageUrl
         }, (response) => {
-            // PROTECCIÓN AL VOLVER DEL SERVIDOR
             if (loadingBall) loadingBall.style.display = "none";
 
             if (response && response.ok) {
                 if (state) state.textContent = "[Texto analizado]";
-                paintBlocks(response.data);
-                
-                // LLAMADA A LA NUEVA FUNCIÓN DE COLOREADO
+                paintBlocks(response.data, pageUrl);
                 highlightText(pageText, response.data);
             } else {
                 if (state) state.textContent = "ERROR SERVIDOR";
@@ -164,51 +160,184 @@ async function extractTextFromPage() {
     func: () => document.body.innerText.slice(0, 25000)
   });
   
-  // Retornamos texto y URL
   return {
       text: result,
       url: tab.url
   };
 }
 
-function paintBlocks(data) {
-    const cont = document.getElementById("blocks");
-    if (!cont) return;
-    
-    cont.innerHTML = ""; // Limpiar resultados anteriores
-    
-    // Extraer el array de bloques
-    let blocks = [];
-    if (Array.isArray(data)) {
-        blocks = data;
-    } else if (data && data.blocks && Array.isArray(data.blocks)) {
-        blocks = data.blocks;
+// ==========================================
+// SISTEMA DE LIKE / DISLIKE
+// ==========================================
+
+/**
+ * Envía el reporte de feedback al servidor.
+ * El servidor debe recibir un POST con JSON y guardarlo en un CSV.
+ * Campos: timestamp, url, block_index, score, text, feedback (like|dislike)
+ */
+function sendFeedback(blockData, pageUrl, feedback) {
+    const payload = {
+        timestamp: new Date().toISOString(),
+        url: pageUrl,
+        block_index: blockData.i,
+        score: blockData.score,
+        text: blockData.text,
+        feedback: feedback  // "like" o "dislike"
+    };
+
+    chrome.runtime.sendMessage({
+        type: "SEND_FEEDBACK",
+        payload: payload
+    }, (response) => {
+        if (response && response.ok) {
+            console.log(`[Feedback] ${feedback} enviado para bloque #${blockData.i}`);
+        } else {
+            console.warn(`[Feedback] Error al enviar: ${response?.error}`);
+        }
+    });
+}
+
+/**
+ * Crea los iconos de like/dislike para insertar DENTRO del block-row.
+ * Estilo emoji, sin caja ni borde.
+ */
+function createFeedbackButtons(blockData, pageUrl) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "fb-icons";
+
+    const likeBtn = document.createElement("button");
+    likeBtn.className = "fb-icon-btn fb-like";
+    likeBtn.title = "Clasificación correcta";
+    likeBtn.textContent = "👍";
+
+    const dislikeBtn = document.createElement("button");
+    dislikeBtn.className = "fb-icon-btn fb-dislike";
+    dislikeBtn.title = "Clasificación incorrecta";
+    dislikeBtn.textContent = "👎";
+
+    function handleFeedback(selected, other, value) {
+        if (wrapper.dataset.voted === "true") return;
+        wrapper.dataset.voted = "true";
+
+        selected.classList.add("fb-icon-voted");
+        other.classList.add("fb-icon-faded");
+        other.disabled = true;
+
+        sendFeedback(blockData, pageUrl, value);
     }
 
-    console.log("Total de bloques recibidos:", blocks.length); 
+    likeBtn.onclick    = () => handleFeedback(likeBtn,    dislikeBtn, "like");
+    dislikeBtn.onclick = () => handleFeedback(dislikeBtn, likeBtn,    "dislike");
 
-    // Ordenar por score (Mayor odio arriba)
-    blocks.sort((a, b) => b.score - a.score);
+    wrapper.appendChild(likeBtn);
+    wrapper.appendChild(dislikeBtn);
+    return wrapper;
+}
 
-    blocks.forEach(b => {
+// ==========================================
+// ORDENAMIENTO DE BLOQUES
+// ==========================================
+
+function initSortButtons() {
+    document.querySelectorAll(".sort-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            currentOrder = btn.dataset.order;
+
+            // Marcar activo
+            document.querySelectorAll(".sort-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+
+            // Re-renderizar con el nuevo orden
+            renderBlocks();
+        });
+    });
+}
+
+// ==========================================
+// PINTAR BLOQUES (con feedback FUERA del cuadro)
+// ==========================================
+
+/**
+ * paintBlocks: guarda los datos y delega el render a renderBlocks().
+ */
+function paintBlocks(data, pageUrl) {
+    currentPageUrl = pageUrl;
+
+    if (Array.isArray(data)) {
+        currentBlocks = data;
+    } else if (data && data.blocks && Array.isArray(data.blocks)) {
+        currentBlocks = data.blocks;
+    } else {
+        currentBlocks = [];
+    }
+
+    console.log("Total de bloques recibidos:", currentBlocks.length);
+
+    // Mostrar la barra de orden solo si hay bloques
+    const sortBar = document.getElementById("sort-bar");
+    if (sortBar) sortBar.style.display = currentBlocks.length > 0 ? "flex" : "none";
+
+    // Resetear al orden por defecto (mayor → menor) en cada nuevo análisis
+    currentOrder = "desc";
+    document.querySelectorAll(".sort-btn").forEach(b => {
+        b.classList.toggle("active", b.dataset.order === "desc");
+    });
+
+    renderBlocks();
+}
+
+/**
+ * renderBlocks: ordena currentBlocks según currentOrder y los pinta.
+ */
+function renderBlocks() {
+    const cont = document.getElementById("blocks");
+    if (!cont) return;
+
+    cont.innerHTML = "";
+
+    if (currentBlocks.length === 0) {
+        cont.innerHTML = "<p style='text-align:center; font-size:12px; color:gray;'>No se detectaron bloques de texto.</p>";
+        return;
+    }
+
+    // Copia para no mutar el array original
+    const sorted = [...currentBlocks];
+
+    if (currentOrder === "desc") {
+        sorted.sort((a, b) => b.score - a.score);
+    } else if (currentOrder === "asc") {
+        sorted.sort((a, b) => a.score - b.score);
+    } else {
+        // "original": orden por índice del servidor
+        sorted.sort((a, b) => a.i - b.i);
+    }
+
+    sorted.forEach(b => {
         let sev = "ok";
         if (b.score >= thresholds.high) sev = "err";
         else if (b.score >= thresholds.low) sev = "warn";
 
+        // Wrapper externo: agrupa el bloque coloreado y los iconos fuera de él
+        const wrapper = document.createElement("div");
+        wrapper.className = "block-wrapper";
+
         const row = document.createElement("div");
-        row.className = `block-row ${sev}`; 
-        
+        row.className = `block-row ${sev}`;
         row.innerHTML = `
             <div class="cell idx">#${b.i}</div>
             <div class="cell score ${sev}">${(b.score * 100).toFixed(1)}%</div>
             <div class="cell text">${b.text}</div>
         `;
-        cont.appendChild(row);
-    });
 
-    if (blocks.length === 0) {
-        cont.innerHTML = "<p style='text-align:center; font-size:12px; color:gray;'>No se detectaron bloques de texto.</p>";
-    }
+        wrapper.appendChild(row);
+
+        // Iconos fuera del bloque coloreado, alineados a la derecha del wrapper
+        if (b.score >= thresholds.low) {
+            wrapper.appendChild(createFeedbackButtons(b, currentPageUrl));
+        }
+
+        cont.appendChild(wrapper);
+    });
 }
 
 function loadConfig() {
@@ -234,7 +363,7 @@ function saveConfig() {
   }, () => {
     thresholds.low = parseFloat(lowVal) /100;
     thresholds.high = parseFloat(highVal) /100;
-    alert("Configuración guardada correctamenete")
+    alert("Configuración guardada correctamente");
   });
 }
 
@@ -252,7 +381,7 @@ function updateTextStats(text) {
 }
 
 // ==========================================
-// NUEVAS FUNCIONES PARA EL COLOREADO
+// COLOREADO DE TEXTO
 // ==========================================
 
 function highlightText(fullText, data) {
@@ -265,34 +394,29 @@ function highlightText(fullText, data) {
 
     if (blocks.length === 0) return;
 
-    // Ordenamos los bloques por dónde empiezan en el texto
     blocks.sort((a, b) => a.start - b.start);
 
     let highlightedHTML = "";
     let lastEnd = 0;
 
     blocks.forEach(b => {
-        // Rellenar huecos de texto que no fue analizado
         if (b.start > lastEnd) {
             highlightedHTML += escapeHTML(fullText.substring(lastEnd, b.start));
         }
 
-        // Definir color según el score y tus umbrales
         let bgColor = "transparent";
         let textColor = "inherit";
         
         if (b.score >= thresholds.high) {
-            bgColor = "#ffcccc"; // Fondo rojo pastel
-            textColor = "#990000"; // Letra roja oscura
+            bgColor = "#ffcccc";
+            textColor = "#990000";
         } else if (b.score >= thresholds.low) {
-            bgColor = "#fff2cc"; // Fondo amarillo pastel
-            textColor = "#b38600"; // Letra mostaza
+            bgColor = "#fff2cc";
+            textColor = "#b38600";
         }
 
-        // Extraer la frase exacta
         let chunkText = escapeHTML(fullText.substring(b.start, b.end));
 
-        // Poner la etiqueta <mark> si tiene odio
         if (bgColor !== "transparent") {
             highlightedHTML += `<mark style="background-color: ${bgColor}; color: ${textColor}; border-radius: 4px; padding: 1px 3px; font-weight: 500; display: inline-block;">${chunkText}</mark>`;
         } else {
@@ -302,15 +426,11 @@ function highlightText(fullText, data) {
         lastEnd = b.end;
     });
 
-    // Añadir lo que quede de texto al final
     if (lastEnd < fullText.length) {
         highlightedHTML += escapeHTML(fullText.substring(lastEnd));
     }
 
-    // Convertir los saltos de línea de texto a saltos de línea HTML
     highlightedHTML = highlightedHTML.replace(/\n/g, "<br><br>");
-
-    // Inyectar el texto coloreado
     resultDiv.innerHTML = highlightedHTML;
 }
 

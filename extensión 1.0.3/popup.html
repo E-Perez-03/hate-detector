@@ -47,6 +47,15 @@
         <button id="btnLogs" class="link-btn">📊 Ver Registros</button>
         <button id="btnSurvey" class="link-btn">📝 Encuesta de Uso</button>
       </div>
+
+    <!-- Barra de ordenamiento (oculta hasta que haya bloques) -->
+    <div id="sort-bar" style="display:none;">
+      
+      <button class="sort-btn link-btn active" data-order="desc">↓ Mayor</button>
+      <button class="sort-btn link-btn" data-order="asc">↑ Menor</button>
+      <button class="sort-btn link-btn" data-order="original">↕ Original</button>
+    </div>
+
     <div id="blocks"></div>
   </div> <div id="tab-config" class="tab-pane">
     <div class="config-container">

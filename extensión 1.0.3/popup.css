@@ -537,3 +537,92 @@ header .version { font-size: 11px; color: #888; vertical-align: super; }
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
+/* ============================================================
+   FEEDBACK: emojis like/dislike FUERA del block-row coloreado
+   ============================================================ */
+
+/* Wrapper que agrupa bloque + iconos en fila */
+.block-wrapper {
+  display: flex;
+  flex-direction: row !important;
+  align-items: stretch;
+  margin: 0 10px 10px;
+}
+
+/* El bloque coloreado ocupa todo el espacio disponible */
+.block-wrapper .block-row {
+  flex: 1 1 auto;
+  margin: 0 !important;
+  min-width: 0;
+}
+
+/* Columna de iconos a la derecha, fuera del fondo coloreado */
+.fb-icons {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  flex: 0 0 28px;
+  background: transparent;
+}
+
+.fb-icon-btn {
+  background: none;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 1px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.3;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  border-radius: 0;
+}
+
+.fb-icon-btn:hover {
+  opacity: 1;
+  transform: scale(1.25);
+}
+
+.fb-icon-btn.fb-icon-voted {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.fb-icon-btn.fb-icon-faded {
+  opacity: 0.1;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   BARRA DE ORDENAMIENTO
+   ============================================================ */
+
+#sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 8px;
+  flex-wrap: wrap;
+}
+
+.sort-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 2px;
+}
+
+.sort-btn.active {
+  background-color: #111;
+  color: #fff;
+  border-color: #111;
+}

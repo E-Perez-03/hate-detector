@@ -1,28 +1,27 @@
 // background.js
 
 const PROXY_URL = "https://hatedetector.online/analyze";
+const FEEDBACK_URL = "https://hatedetector.online/feedback"; // Endpoint CSV en tu servidor
+
 // Permite abrir el panel lateral al hacer clic en el icono de la extensión
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
-// 1. Escucha de mensajes desde el popup.js
+
+// Escucha de mensajes desde popup.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+
+  // ── 1. Análisis de texto ──────────────────────────────────────────────────
   if (request.type === "CLASSIFY_TEXT") {
-    // Ejecución asíncrona para no bloquear el hilo principal
     (async () => {
       try {
         const { text, url } = request;
 
-        // Validamos que haya contenido para enviar
         if (!text || text.trim().length === 0) {
           throw new Error("No hay texto para analizar.");
         }
 
         console.log("[BG] Iniciando análisis en servidor propio...");
-        
-        // 2. Llamada a la función del Proxy
         const result = await analyzeViaProxy(text, url);
-
-        // Enviamos la respuesta de vuelta al popup
         sendResponse({ ok: true, data: result });
 
       } catch (err) {
@@ -30,15 +29,53 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ ok: false, error: err.message });
       }
     })();
-
-    // Mantiene el canal de comunicación abierto para la respuesta del fetch
-    return true; 
+    return true; // Canal abierto para respuesta asíncrona
   }
+
+  // ── 2. Feedback like / dislike ────────────────────────────────────────────
+  if (request.type === "SEND_FEEDBACK") {
+    (async () => {
+      try {
+        const { payload } = request;
+
+        console.log("[BG] Enviando feedback:", payload);
+
+        const res = await fetch(FEEDBACK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+          /*
+            Estructura del payload que llega al servidor:
+            {
+              timestamp:   "2026-05-09T14:32:00.000Z",  // ISO 8601 UTC
+              url:         "https://ejemplo.com/noticia",
+              block_index: 3,
+              score:       0.87,
+              text:        "Texto del bloque analizado...",
+              feedback:    "like" | "dislike"
+            }
+
+            El servidor debe agregar una fila al CSV con estos campos.
+            Ejemplo de fila CSV resultante:
+            2026-05-09T14:32:00.000Z,"https://ejemplo.com/noticia",3,0.87,"Texto del bloque","dislike"
+          */
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        sendResponse({ ok: true });
+
+      } catch (err) {
+        console.error("[BG] Error enviando feedback:", err.message);
+        sendResponse({ ok: false, error: err.message });
+      }
+    })();
+    return true; // Canal abierto para respuesta asíncrona
+  }
+
 });
 
-// 3. Función de comunicación con el Servidor (Proxy)
+// Función de comunicación con el Servidor (Proxy)
 async function analyzeViaProxy(fullText, pageUrl) {
-  // 1. Obtenemos el modelo guardado (si no hay, usamos beto por defecto)
   const storage = await chrome.storage.local.get("selectedModel");
   const modelToUse = storage.selectedModel || "beto-hate-v3";
 
@@ -50,7 +87,7 @@ async function analyzeViaProxy(fullText, pageUrl) {
     body: JSON.stringify({ 
       text: fullText, 
       url: pageUrl,
-      model: modelToUse // <--- Enviamos el ID del modelo
+      model: modelToUse
     })
   });
 
