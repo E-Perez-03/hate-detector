@@ -563,9 +563,33 @@ header .version { font-size: 11px; color: #888; vertical-align: super; }
   justify-content: center;
   align-items: center;
   gap: 4px;
-  padding: 0 6px;
-  flex: 0 0 28px;
+  padding: 0 4px;
+  flex: 0 0 34px;
   background: transparent;
+}
+
+/* Label "Human in loop" — aparece una sola vez como encabezado de columna */
+.fb-header-row {
+  margin-bottom: 2px !important;
+  pointer-events: none;
+}
+
+/* Ocupa el mismo espacio que el block-row para empujar el label a la derecha */
+.fb-header-spacer {
+  flex: 1 1 auto;
+}
+
+/* El título alineado sobre la columna de iconos */
+.fb-header-label {
+  flex: 0 0 34px;
+  font-size: 7px;
+  font-weight: 700;
+  color: #b0b0bc;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  line-height: 1.4;
+  text-align: center;
+  user-select: none;
 }
 
 .fb-icon-btn {

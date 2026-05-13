@@ -312,6 +312,20 @@ function renderBlocks() {
         sorted.sort((a, b) => a.i - b.i);
     }
 
+    // ¿Hay algún bloque que supere el umbral y muestre feedback?
+    const hasFeedback = sorted.some(b => b.score >= thresholds.low);
+
+    // Encabezado de columna: una sola vez, alineado sobre los iconos
+    if (hasFeedback) {
+        const header = document.createElement("div");
+        header.className = "block-wrapper fb-header-row";
+        header.innerHTML = `
+            <div class="fb-header-spacer"></div>
+            <div class="fb-header-label">Human<br>in the<br>loop<loop</div>
+        `;
+        cont.appendChild(header);
+    }
+
     sorted.forEach(b => {
         let sev = "ok";
         if (b.score >= thresholds.high) sev = "err";
