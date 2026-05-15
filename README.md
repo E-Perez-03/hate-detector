@@ -1,4 +1,7 @@
 # HATE DETECTOR - v1.0.4
+![Logo de mi proyecto](https://github.com/usuario/repositorio/raw/main/imagenes/)
+
+
 ### Guía de Instalación.
 
 Este documento contiene las instrucciones para cargar de forma local la 
