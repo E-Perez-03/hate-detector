@@ -1,6 +1,7 @@
 # HATE DETECTOR - v1.0.4
-![Logo de mi proyecto]([https://github.com/E-Perez-03/hate-detector/blob/main/img/icono128.png])
-
+<p align="center">
+  <img src="./img/1.png" width="300" alt="HateDetector">
+</p>
 ### Guía de Instalación.
 
 Este documento contiene las instrucciones para cargar de forma local la 
