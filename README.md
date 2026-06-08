@@ -2,10 +2,12 @@
 <p align="center">
   <img src="./img/1.png" width="300" alt="HateDetector">
 </p>
+
+
 ### Guía de Instalación.
 
 Este documento contiene las instrucciones para cargar de forma local la 
-extensión "Hate Detector" en tu navegador.
+extensión "Hate Detector" en tu navegador (está en proceso de revisión)
 
 ## NAVEGADORES COMPATIBLES
 
