@@ -49,6 +49,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 6. BOTONES DE ORDENAMIENTO
     initSortButtons();
+
+    // 7. TOOLTIP DE AYUDA PARA "HUMAN IN THE LOOP"
+    initFeedbackHelp();
 });
 
 function initTabs() {
@@ -153,17 +156,63 @@ async function analyze() {
     }
 }
 
+/**
+ * extractTextFromPage: obtiene el texto de la pestaña activa usando
+ * content.js (que filtra script/style/nav/footer/header/iframe/ads
+ * antes de devolver el texto), en vez del innerText crudo del body.
+ *
+ * Sigue el patrón descrito en flujo_operativo.txt:
+ *   1) Intenta contactar al content script ya inyectado.
+ *   2) Si no responde (aún no está inyectado en esta pestaña),
+ *      lo inyecta con chrome.scripting.executeScript y reintenta.
+ */
 async function extractTextFromPage() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const [{ result }] = await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: () => document.body.innerText.slice(0, 25000)
-  });
-  
-  return {
-      text: result,
-      url: tab.url
-  };
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    let response = await sendExtractMessage(tab.id);
+
+    if (!response) {
+        // El content script no respondió: no estaba inyectado todavía en esta pestaña.
+        await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ["content.js"]
+        });
+        response = await sendExtractMessage(tab.id);
+    }
+
+    if (!response) {
+        // Sigue sin responder tras inyectar: probablemente una página restringida
+        // (chrome://, la Chrome Web Store, un PDF visor interno, etc.) donde no
+        // se pueden inyectar content scripts.
+        throw new Error("No se puede analizar esta página (posiblemente restringida por el navegador).");
+    }
+
+    const rawText = response.text || "";
+    const pageUrl = response.url || tab.url;
+
+    // Mantenemos el límite de 25.000 caracteres para no saturar el análisis.
+    return {
+        text: rawText.slice(0, 25000),
+        url: pageUrl
+    };
+}
+
+/**
+ * sendExtractMessage: envuelve chrome.tabs.sendMessage en una Promise.
+ * Si no hay content script escuchando en esa pestaña (chrome.runtime.lastError),
+ * resuelve con null en vez de rechazar, para que extractTextFromPage pueda
+ * decidir inyectar el script y reintentar.
+ */
+function sendExtractMessage(tabId) {
+    return new Promise((resolve) => {
+        chrome.tabs.sendMessage(tabId, { action: "extractText" }, (resp) => {
+            if (chrome.runtime.lastError) {
+                resolve(null);
+            } else {
+                resolve(resp);
+            }
+        });
+    });
 }
 
 // ==========================================
@@ -232,6 +281,42 @@ function createFeedbackButtons(blockData, pageUrl) {
     wrapper.appendChild(likeBtn);
     wrapper.appendChild(dislikeBtn);
     return wrapper;
+}
+
+/**
+ * initFeedbackHelp: maneja el botón "?" que explica para qué sirven
+ * los iconos de 👍/👎 (Human in the loop). Usa delegación de eventos
+ * sobre document para que funcione sin importar cuántas veces se
+ * regenere el header (cada llamada a renderBlocks crea uno nuevo).
+ */
+function initFeedbackHelp() {
+    document.addEventListener("click", (e) => {
+        const helpBtn = e.target.closest(".fb-help-btn");
+        const existingTip = document.querySelector(".fb-help-tooltip");
+
+        if (helpBtn) {
+            e.stopPropagation();
+            // Si ya estaba abierto, el clic lo cierra (toggle).
+            if (existingTip) {
+                existingTip.remove();
+                return;
+            }
+            const tip = document.createElement("div");
+            tip.className = "fb-help-tooltip";
+            tip.innerHTML = `
+                <strong>👍 / 👎 Human in the loop</strong>
+                <p>Indícanos si la clasificación de un bloque de texto es correcta o incorrecta.
+                Tu respuesta se guarda de forma anónima y nos ayuda a mejorar la precisión del modelo.</p>
+            `;
+            helpBtn.closest(".fb-header-row").appendChild(tip);
+            return;
+        }
+
+        // Clic fuera del tooltip: se cierra.
+        if (existingTip && !e.target.closest(".fb-help-tooltip")) {
+            existingTip.remove();
+        }
+    });
 }
 
 // ==========================================
@@ -312,8 +397,9 @@ function renderBlocks() {
         sorted.sort((a, b) => a.i - b.i);
     }
 
-    // ¿Hay algún bloque que supere el umbral y muestre feedback?
-    const hasFeedback = sorted.some(b => b.score >= thresholds.low);
+    // Ahora TODOS los bloques (ok, warn, err) muestran feedback,
+    // así que el encabezado se muestra siempre que haya al menos un bloque.
+    const hasFeedback = sorted.length > 0;
 
     // Encabezado de columna: una sola vez, alineado sobre los iconos
     if (hasFeedback) {
@@ -321,7 +407,10 @@ function renderBlocks() {
         header.className = "block-wrapper fb-header-row";
         header.innerHTML = `
             <div class="fb-header-spacer"></div>
-            <div class="fb-header-label">HITL<loop</div>
+            <div class="fb-header-label">
+                Human<br>in the<br>loop
+                <button type="button" class="fb-help-btn" id="fbHelpBtn" aria-label="¿Para qué son estos botones?">?</button>
+            </div>
         `;
         cont.appendChild(header);
     }
@@ -345,10 +434,10 @@ function renderBlocks() {
 
         wrapper.appendChild(row);
 
-        // Iconos fuera del bloque coloreado, alineados a la derecha del wrapper
-        if (b.score >= thresholds.low) {
-            wrapper.appendChild(createFeedbackButtons(b, currentPageUrl));
-        }
+        // Iconos fuera del bloque coloreado, alineados a la derecha del wrapper.
+        // Se muestran para TODOS los bloques (ok, warn, err), no solo warn/err,
+        // para poder recolectar feedback también sobre falsos negativos (verdes).
+        wrapper.appendChild(createFeedbackButtons(b, currentPageUrl));
 
         cont.appendChild(wrapper);
     });

@@ -1,13 +1,39 @@
 // background.js
 
 const PROXY_URL = "https://hatedetector.online/analyze";
-const FEEDBACK_URL = "https://hatedetector.online/feedback"; // Endpoint CSV en tu servidor
+const FEEDBACK_URL = "https://hatedetector.online/feedback"; 
 
-// Permite abrir el panel lateral al hacer clic en el icono de la extensión
+const EXTENSION_API_KEY = "TZ3Yws6BqA_ZEZ_NornoaopeQtPpc8yvOnVzGBEyovM"; 
+
+function authHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "X-API-Key": EXTENSION_API_KEY
+  };
+}
+
+const FETCH_TIMEOUT_MS = 15000;
+
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error("El servidor tardó demasiado en responder. Intenta nuevamente.");
+    }
+    throw new Error("No se pudo conectar con el servidor. Revisa tu conexión.");
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
 
-// Escucha de mensajes desde popup.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // ── 1. Análisis de texto ──────────────────────────────────────────────────
@@ -29,7 +55,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ ok: false, error: err.message });
       }
     })();
-    return true; // Canal abierto para respuesta asíncrona
+    return true; 
   }
 
   // ── 2. Feedback like / dislike ────────────────────────────────────────────
@@ -40,25 +66,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         console.log("[BG] Enviando feedback:", payload);
 
-        const res = await fetch(FEEDBACK_URL, {
+        const res = await fetchWithTimeout(FEEDBACK_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders(),
           body: JSON.stringify(payload)
-          /*
-            Estructura del payload que llega al servidor:
-            {
-              timestamp:   "2026-05-09T14:32:00.000Z",  // ISO 8601 UTC
-              url:         "https://ejemplo.com/noticia",
-              block_index: 3,
-              score:       0.87,
-              text:        "Texto del bloque analizado...",
-              feedback:    "like" | "dislike"
-            }
-
-            El servidor debe agregar una fila al CSV con estos campos.
-            Ejemplo de fila CSV resultante:
-            2026-05-09T14:32:00.000Z,"https://ejemplo.com/noticia",3,0.87,"Texto del bloque","dislike"
-          */
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -81,9 +92,9 @@ async function analyzeViaProxy(fullText, pageUrl) {
 
   console.log("[BG] Usando modelo:", modelToUse);
   
-  const res = await fetch(PROXY_URL, {
+  const res = await fetchWithTimeout(PROXY_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify({ 
       text: fullText, 
       url: pageUrl,
@@ -91,6 +102,6 @@ async function analyzeViaProxy(fullText, pageUrl) {
     })
   });
 
-  if (!res.ok) throw new Error("Error en la respuesta del servidor");
+  if (!res.ok) throw new Error(`Error en la respuesta del servidor (HTTP ${res.status})`);
   return await res.json();
 }

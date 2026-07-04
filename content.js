@@ -17,7 +17,9 @@
         // 3. Obtención de texto
         let rawText = bodyClone.innerText || bodyClone.textContent || "";
 
-     
+        // 4. CORRECCIÓN DE ESPACIADO: 
+        // Eliminamos espacios en blanco al inicio/final de cada línea y
+        // reducimos múltiples saltos de línea a máximo dos.
         const cleanText = rawText
           .split('\n')
           .map(line => line.trim())

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Hate Detector v4",
+  "name": "Hate Detector v3",
   "description": "Extensión para navegadores - Detector de discurso de odio basado en BETO para textos en español -",
-  "version": "4",
+  "version": "3",
   "permissions": [
     "activeTab",
     "scripting",
