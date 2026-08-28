@@ -4,7 +4,7 @@
 </p>
 
 ### Motivación
-Este proyecto surge de una inquietud personal, impulsada por el deseo de encontrar una herramienta eficaz para identificar y educar sobre el lenguaje de odio en las redes sociales, funcionando como un paragua  que abarcara plataformas como la web, Instagram, TikTok y YouTube. De esta forma nace Hate Detector como una extensión para los navegadores que pudiese "leer e identificar" todo el texto ofensivo que encontraba en la web. Por el momento se tiene la versión 1.0.4, que revisa, detecta, registra y permite recibir feedback del usuario que navega para futuramente aprender y mejorar la detección. Dispone de 2 modelos, uno para detección de texto discriminatorio en contra de comunidades lgbtqia+ y otro que amplía el ámbito a la zenofobia, misoginia y bullying.
+Este proyecto surge de una inquietud personal, impulsada por el deseo de encontrar una herramienta eficaz para identificar y educar sobre el lenguaje de odio en las redes sociales, funcionando como un paragua  que abarcara plataformas como la web, Instagram, TikTok y YouTube. De esta forma nace Hate Detector como una extensión para los navegadores que pudiese "leer e identificar" todo el texto ofensivo que encontraba en la web. Por el momento se tiene la versión 1.0.4, que revisa, detecta, registra y permite recibir feedback del usuario que navega para futuramente aprender y mejorar la detección. Dispone de 2 modelos, uno para detección de texto discriminatorio en contra de comunidades LGBTQIA+ y otro que amplía el ámbito a la xenofobia, misoginia y bullying en general.
 
 ### Guía de Instalación
 
