@@ -1,4 +1,4 @@
-# HATE DETECTOR - v1.0.4
+# HATE DETECTOR - v1.0.4 - Extensión para el navegador que apoya en la detección de mensajes discriminatorios en la web.
 <p align="center">
   <img src="./img/1.png" width="300" alt="HateDetector">
 </p>
@@ -6,7 +6,7 @@
 ### Motivación
 Este proyecto surge de una inquietud personal, impulsada por el deseo de encontrar una herramienta eficaz para identificar y educar sobre el lenguaje de odio en las redes sociales, funcionando como un paragua  que abarcara plataformas como la web, Instagram, TikTok y YouTube. De esta forma nace Hate Detector como una extensión para los navegadores que pudiese "leer e identificar" todo el texto ofensivo que encontraba en la web. Por el momento se tiene la versión 1.0.4, que revisa, detecta, registra y permite recibir feedback del usuario que navega para futuramente aprender y mejorar la detección. Dispone de 2 modelos, uno para detección de texto discriminatorio en contra de comunidades lgbtqia+ y otro que amplía el ámbito a la zenofobia, misoginia y bullying.
 
-### Guía de Instalación.
+### Guía de Instalación
 
 Este documento contiene las instrucciones para cargar de forma local la extensión "Hate Detector" en tu navegador (está en proceso de revisión), en futuro, una versión mejorada estará disponible en Chrome Web Store de Google.
 
